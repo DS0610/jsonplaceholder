@@ -1,0 +1,39 @@
+name: Fetch TODO and save to /tmp/test.json
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   
+  workflow_dispatch:        
+
+jobs:
+  fetch-and-save:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Seoul  # 분 계산을 한국시간 기준으로 맞춥니다.
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Compute minute + 1 and fetch JSON
+        run: |
+          # 한국 시간 기준 현재 분 + 1 → 1~60
+          MIN=$(date +%M)
+          ID=$((10#$MIN + 1))   # 08 같은 0-프리픽스 대비
+
+          URL="https://jsonplaceholder.typicode.com/todos/${ID}"
+          echo "Computed ID=${ID} (from minute=${MIN}); URL=${URL}"
+
+          # API 호출 → /tmp/test.json 저장
+          curl -sS "${URL}" -o /tmp/test.json
+
+          # 내용 확인
+          echo "----- /tmp/test.json -----"
+          cat /tmp/test.json
+          echo "--------------------------"
+
+      - name: Upload artifact (test.json)
+        uses: actions/upload-artifact@v4
+        with:
+          name: test.json
+          path: /tmp/test.json
+          if-no-files-found: error
